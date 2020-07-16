@@ -30,6 +30,12 @@ para['substitute']=0
 para['method']='sqtwolog'# sqtwolog rigsure heursure minimaxi
 wtdm = wtd.WaveletThresholdDenoise(para)
 
+# Label the fault mode #
+label=dict()
+label['1'] = ['','','','',"inner","inner","roller","roller"]
+label['2'] = ['outer','','','']
+label['3'] = ['','','outer','']
+
 for i in range(data20.shape[0] // 20480):
     s = get_slice(data20, i)
     denoised = wtdm.wavelet_denoise([s])[0]
