@@ -39,7 +39,7 @@ def getEntropy(y):
     filtered = ss.filtfilt(b, a, denoised)
     hil = ss.hilbert(filtered)
     envelope = np.sqrt(np.power(filtered, 2) + np.power(hil, 2))
-    fft_out = fft_model.fft_analysis(envelope)
+    fft_out = fft_model.fft_analysis(envelope)[0]
     prob = np.array(fft_out)*1.0/(sum(fft_out))
     entropy = 0
     for p in prob:
@@ -69,13 +69,14 @@ def find_kurtosis(data, Q, red,level_num):
     for comb_signal in comb_signals:
         i = i + 1
         y = itqwt(comb_signal, Q, red, 20480)
-        ########################################
-        # Comment out to introduce the IK value
-        # E = getEntropy(y)
-        # kurtosis = kurtosis*1.0 / E # Now the kurtosis is IK
-        #########################################
+        
         re_signals.append(y)
         kurtosis = stats.kurtosis(y).real
+        ########################################
+        # Comment out to introduce the IK value
+        E = getEntropy(y)
+        kurtosis = kurtosis*1.0 / E # Now the kurtosis is IK
+        #########################################
         if kurtosis > max_kurtosis:
             max_kurtosis = kurtosis.real
             chosen_level = i # index starts from 1
