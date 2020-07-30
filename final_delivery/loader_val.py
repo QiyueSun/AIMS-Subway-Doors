@@ -69,9 +69,9 @@ if __name__ == "__main__":
             b, a = ss.butter(4, df[i][1] / 25600, 'highpass')
             fftm = fft_process.FFTProcess({"fs": 25600})
             if c >= '07':
-                ratio = {'roller': 0.06676, 'outer': 0.05095, 'inner': 0.08238}
+                ratio = {'roller': 0.06676 / 2, 'outer': 0.05095, 'inner': 0.08238}
             else:
-                ratio = {'roller': 0.12278, 'outer': 0.11555, 'inner': 0.15111}
+                ratio = {'roller': 0.12278 / 2, 'outer': 0.11555, 'inner': 0.15111}
             for j in range(n_slice):
                 cf[j] = bearing.diagnose(sig[j], b, a, fftm, plot=True)
                 f[j] = bearing.freq_to_fault(cf[j], rpm=df[i][1], ratio=ratio)
@@ -82,6 +82,7 @@ if __name__ == "__main__":
                 for fff in ff:
                     fcnt[fff] += 1
             print(df[i][0] + ' ' + str(df[i][1]) + ' ' + c + str(fcnt), file=fd)
+            fd.flush()
             print(df[i][0] + ' ' + str(df[i][1]) + ' ' + c + str(fcnt))
 
     ########################################

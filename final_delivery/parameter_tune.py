@@ -22,6 +22,14 @@ def get_slice(dat, index):
     return dat[index * 20480: (index + 1) * 20480]
 
 
+def best_itqwt(w, q, r, n):
+    iks = np.array([stats.kurtosis(s.real) / getEntropy(s.real) for s in w])
+    ik_means = [np.mean(iks[:i]) for i in range(1, len(iks) + 1)]
+    rec_len = np.argmax(ik_means) + 1
+    return itqwt(w[:rec_len], q, r, n)
+    
+
+
 def getEntropy(y):
     '''
     Return the envelop Entrop of input signal used for IK calculation.
@@ -45,7 +53,8 @@ def getEntropy(y):
     prob = np.array(fft_out)*1.0/(sum(fft_out))
     entropy = 0
     for p in prob:
-        entropy += -p*np.log(p) 
+        if p > 0:
+            entropy += -p*np.log(p) 
     return entropy
 
 
@@ -54,35 +63,41 @@ def find_kurtosis(data, Q, red,level_num):
     Find a K or IK for a given signal
     '''
     w = tqwt(data, Q, red, level_num)
-    comb_signals = []
+
+    rec = best_itqwt(w, Q, red, len(data)).real
+    ik = stats.kurtosis(rec) / getEntropy(rec)
+
+    return ik, ik, ik
+
+    # comb_signals = []
 
     #########################################
-    for j in range (level_num + 1):
-        comb_signal = [w[i].real for i in range(j+1)]
-        comb_signals.append(comb_signal)
-    for j in range (level_num):
-        comb_signals.append([np.array(w[j].real)]) # append the decomposed signals w[i] on the end of the []
+    # for j in range (level_num + 1):
+    #     comb_signal = [w[i].real for i in range(j+1)]
+    #     comb_signals.append(comb_signal)
+    # for j in range (level_num):
+    #     comb_signals.append([np.array(w[j].real)]) # append the decomposed signals w[i] on the end of the []
 
     #######################################
-    max_kurtosis = 0
-    chosen_level = 0
-    i=0
-    re_signals = []
-    for comb_signal in comb_signals:
-        i = i + 1
-        y = itqwt(comb_signal, Q, red, len(data))
-        re_signals.append(y)
-        kurtosis = stats.kurtosis(y).real
-        ########################################
-        # Comment out to introduce the IK value
-        E = getEntropy(y)
-        kurtosis = kurtosis*1.0 / E # Now the kurtosis is IK
-        #########################################
-        if kurtosis > max_kurtosis:
-            max_kurtosis = kurtosis.real
-            chosen_level = i # index starts from 1
+    # max_kurtosis = 0
+    # chosen_level = 0
+    # i=0
+    # re_signals = []
+    # for comb_signal in comb_signals:
+    #     i = i + 1
+    #     y = itqwt(comb_signal, Q, red, len(data))
+    #     re_signals.append(y)
+    #     kurtosis = stats.kurtosis(y).real
+    #     ########################################
+    #     # Comment out to introduce the IK value
+    #     E = getEntropy(y)
+    #     kurtosis = kurtosis*1.0 / E # Now the kurtosis is IK
+    #     #########################################
+    #     if kurtosis > max_kurtosis:
+    #         max_kurtosis = kurtosis.real
+    #         chosen_level = i # index starts from 1
 
-    return max_kurtosis, chosen_level, comb_signals[chosen_level-1]
+    # return max_kurtosis, chosen_level, comb_signals[chosen_level-1]
 
 
 def Tuning_q(data, num, r, l):
@@ -220,7 +235,7 @@ def Tune_denoise(data):
         level, _ = Tuning_denoise_single(data, 'level', level_range, method=method, mode=mode, level=level, wavelet=wavelet, substitute=substitute)
         wavelet, _ = Tuning_denoise_single(data, 'wavelet', wavelet_range, method=method, mode=mode, level=level, wavelet=wavelet, substitute=substitute)
         substitute, bk = Tuning_denoise_single(data, 'substitute', substitute_range, method=method, mode=mode, level=level, wavelet=wavelet, substitute=substitute)
-        if bk == best_k:
+        if bk <= best_k:
             break
         else:
             best_k = bk
@@ -231,18 +246,22 @@ def Tuning_denoise_single(data, op_name, options, level = 2, wavelet = 'db1', mo
     '''
     降噪调优子函数：固定其他参数，对于某一参数找到其最大值
     '''
-    best_k = -100
+    best_k = None
     best_option = None
     for c in options:
         params = {'level': level, 'wavelet': wavelet, 'mode': mode, 'substitute': substitute, 'method': method}
         params[op_name] = c
         wtdm = wtd.WaveletThresholdDenoise(params)
         dn = wtdm.wavelet_denoise([data])[0]
-        kurtosis = stats.kurtosis(dn).real / getEntropy(dn)
-        if kurtosis > best_k:
+        try:
+            kurtosis = stats.kurtosis(dn).real / getEntropy(dn)
+        except:
+            continue
+        if best_k is None or kurtosis > best_k:
             best_k = kurtosis
             best_option = c
-
+    if best_option is None:
+        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
     return best_option, best_k
 
 

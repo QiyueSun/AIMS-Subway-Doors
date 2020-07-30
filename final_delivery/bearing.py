@@ -9,6 +9,7 @@ import os
 from parameter_tune import execute_out as Tune
 from parameter_tune import Tune_lite
 from parameter_tune import Tune_denoise
+from parameter_tune import best_itqwt
 # from TQWT_std import tqwt
 # from ITQWT_std import itqwt
 from tqwt_tools import tqwt, itqwt
@@ -39,12 +40,13 @@ def extract_signal(freq, dat):
     '''
     width = 9
     half_width = width // 2
-    multiplier = 3
+    multiplier = 2
+    mean = np.mean(dat)
     l = []
     thresholds = dat[:]
     tSum = np.sum(dat[:width])
     for i in range(half_width, len(dat) - half_width - 1):
-        thresholds[i] = (tSum - dat[i]) * multiplier / (width - 1)
+        thresholds[i] = np.max(((tSum - dat[i]) / (width - 1), mean)) * multiplier
         tSum = tSum - dat[i - half_width] + dat[i + half_width + 1]
     for i in range(half_width, len(dat) - half_width - 1):
         if freq[i] >= 5000:
@@ -70,7 +72,7 @@ def diagnose(s, b, a, fft_model, plot=True):
     '''
     q, r, l = Tune_lite(s[:5000]) # TQWT参数调优
     w = tqwt(s, q, r, l)
-    recomposed = itqwt(w[:-1], q, r, len(s)).real
+    recomposed = best_itqwt(w, q, r, len(s)).real
     # plt.subplot(2, 1, 1)
     # plt.plot(s)
     # plt.subplot(2, 1, 2)
@@ -94,10 +96,11 @@ def freq_to_fault(freqs, rpm = 1, ratio = {'outer': 300, 'inner': 210, 'roller':
     '''
     将故障频率转译为故障位置
     '''
+    tolerance = 0.1
     ret = []
     for k in ratio.keys():
         for f in freqs:
-            if np.abs(f / (ratio[k] * rpm) - 1) < 0.02 or np.abs(f / (2 * ratio[k] * rpm) - 1) < 0.02 or np.abs(f / (3 * ratio[k] * rpm) - 1) < 0.02:
+            if np.abs(f / (ratio[k] * rpm) - 1) < tolerance or np.abs(f / (2 * ratio[k] * rpm) - 1) < tolerance:
                 ret.append(k)
                 break
     return ret
