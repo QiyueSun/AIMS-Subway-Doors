@@ -8,7 +8,7 @@ import sys
 import os
 from parameter_tune import execute_out as Tune
 from parameter_tune import Tune_lite
-from parameter_tune import Tune_denoise
+from parameter_tune import Tune_denoise, Tune_denoise_perfect
 from parameter_tune import best_itqwt
 # from TQWT_std import tqwt
 # from ITQWT_std import itqwt
@@ -38,7 +38,7 @@ def extract_signal(freq, dat):
     '''
     从频谱中提取突出信号，提取幅值大于周围信号平均值 * multiplier的信号
     '''
-    width = 9
+    width = 15
     half_width = width // 2
     multiplier = 2
     mean = np.mean(dat)
@@ -79,7 +79,7 @@ def diagnose(s, b, a, fft_model, plot=True):
     # plt.plot(recomposed)
     # plt.show()
     # recomposed = s
-    level, wavelet, mode, substitute, method = Tune_denoise(recomposed) # 选择最优降噪参数
+    level, wavelet, mode, substitute, method = Tune_denoise_perfect(recomposed) # 选择最优降噪参数
     wtdm = wtd.WaveletThresholdDenoise({'level': level, 'wavelet': wavelet, 'mode': mode, 'substitute': substitute, 'method': method})
     denoised = wtdm.wavelet_denoise([recomposed])[0] # 降噪
     filtered = denoised # ss.filtfilt(b, a, denoised) # 滤波

@@ -265,6 +265,32 @@ def Tuning_denoise_single(data, op_name, options, level = 2, wavelet = 'db1', mo
     return best_option, best_k
 
 
+def Tune_denoise_perfect(data):
+    level_range = range(5, 15)
+    wavelet_range = ['db1', 'db2', 'db3', 'db4', 'db5']
+    mode_range = ['soft', 'hard', 'greater', 'less', 'garotte']
+    substitute_range = [0]
+    method_range = ['minimaxi'] #['sqtwolog', 'heursure', 'minimaxi']
+    best_k = None
+    best_option = None
+    for level in level_range:
+        for wavelet in wavelet_range:
+            for mode in mode_range:
+                for substitute in substitute_range:
+                    for method in method_range:
+                        params = {'level': level, 'wavelet': wavelet, 'mode': mode, 'substitute': substitute, 'method': method}
+                        wtdm = wtd.WaveletThresholdDenoise(params)
+                        dn = wtdm.wavelet_denoise([data])[0]
+                        try:
+                            kurtosis = stats.kurtosis(dn).real / getEntropy(dn)
+                        except:
+                            continue
+                        if best_k is None or kurtosis > best_k:
+                            best_k = kurtosis
+                            best_option = (level, wavelet, mode, substitute, method)
+    return best_option
+
+
 def execute_out(data_raw):
     '''
     Input: signal of a certain channel
